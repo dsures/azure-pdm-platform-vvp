@@ -7,7 +7,7 @@ trigger:
       - infra/*
 
 pool:
-  vmImage: 'ubuntu-latest'
+     name: 'Default'
 
 steps:
   - task: AzureCLI@2
