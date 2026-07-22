@@ -1,0 +1,23 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - infra/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: AzureCLI@2
+    displayName: 'Deploy Bicep landing zone'
+    inputs:
+      azureSubscription: 'sc-pdmvvp-azure'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        az deployment sub create \
+          --location uksouth \
+          --template-file infra/main.bicep \
+          --parameters projectName=pdmvvp environment=dev
