@@ -118,3 +118,25 @@ output storageAccountName string = storage.name
 output keyVaultName string = keyVault.name
 output identityId string = identity.id
 output identityPrincipalId string = identity.properties.principalId
+
+var adfName = 'adf-${projectName}-${environment}-${uniqueSuffix}'
+
+resource dataFactory 'Microsoft.DataFactory/factories@2018-06-01' = {
+  name: adfName
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+}
+
+resource adfStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storage.id, dataFactory.id, 'StorageBlobDataContributor')
+  scope: storage
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    principalId: dataFactory.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+output dataFactoryName string = dataFactory.name
