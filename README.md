@@ -10,23 +10,26 @@ telemetry rows, 100 machines, 761 failures across 4 components).
 
 ## Architecture
 
+```
 Dockerized "legacy" SQL Server (Machines, MaintenanceHistory)
-│ Azure Data Factory + Self-Hosted Integration Runtime
-▼
-ADLS Gen2 "bronze" container ◄── direct upload: telemetry / errors / failures CSVs
-│
-▼ (Databricks, PySpark)
-5x silver Delta tables — cleaned, deduplicated, correctly typed
-│
-▼
-gold_telemetry_features — 3-day rolling sensor statistics
-│ joined with error counts, maintenance recency, failure labels
-▼
-gold_features
-│
-├─► dq_check_log / data_dictionary (data quality + governance)
-└─► Power BI report (DAX measures on failure rate, component
-breakdown, maintenance recency)
+        │
+        ▼ Azure Data Factory + Self-Hosted Integration Runtime
+        │
+   ADLS Gen2 "bronze" container ◄── direct upload: telemetry / errors / failures CSVs
+        │
+        ▼ (Databricks, PySpark)
+   5x silver Delta tables — cleaned, deduplicated, correctly typed
+        │
+        ▼
+   gold_telemetry_features — 3-day rolling sensor statistics
+        │
+        ▼ joined with error counts, maintenance recency, failure labels
+   gold_features
+        │
+        ├──► dq_check_log / data_dictionary (data quality + governance)
+        │
+        └──► Power BI report (DAX measures on failure rate, component breakdown, maintenance recency)
+```
 
 
 ## Azure DevOps Pipelines ── deploys infra/ automatically on push to main
@@ -62,24 +65,26 @@ on any change to `infra/`.
 
 ## Repo structure
 
+```
 azure-pdm-platform-vvp/
 ├── azure-pipelines.yml
-├── .env (not committed — local secrets)
+├── .env                  (not committed — local secrets)
 ├── .gitignore
 ├── README.md
-├── data/raw/ (not committed — source CSVs)
+├── data/raw/             (not committed — source CSVs)
 ├── docker/
-│ ├── docker-compose.yml
-│ └── init/
-│ ├── init-schema.sql
-│ └── verify.sql
+│   ├── docker-compose.yml
+│   └── init/
+│       ├── init-schema.sql
+│       └── verify.sql
 ├── infra/
-│ ├── main.bicep
-│ └── resources.bicep
+│   ├── main.bicep
+│   └── resources.bicep
 ├── notebooks/
-│ └── pdm_pipeline.py (exported Databricks notebook, source format)
+│   └── pdm_pipeline.py   (exported Databricks notebook, source format)
 └── scripts/
-└── seed_legacy_db.py
+    └── seed_legacy_db.py
+```
 
 
 ## Prerequisites
