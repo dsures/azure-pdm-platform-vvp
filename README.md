@@ -130,76 +130,35 @@ azure-pdm-platform-vvp/
 
 ## Known limitations and design trade-offs
 
-- No enterprise scale — single subscription, small resource footprint, by
-  design.
-- Hybrid on-prem↔cloud networking (VPN Gateway) is designed as IaC but not
-  deployed, since it's a billed resource; the ADF Self-Hosted Integration
-  Runtime provides the actual working hybrid connection instead.
-- Event streaming is simulated via folder-based replay rather than a live
-  Event Hub/Kafka feed, for the same cost reason.
-- Silver and gold Delta tables live in Databricks-managed storage rather than
-  back in the pre-provisioned ADLS `silver`/`gold` containers — Databricks'
-  free tier has limited support for writing to Azure storage directly (see
-  Troubleshooting), so bronze is the only layer that lives in Azure Data Lake.
-- The dataset is synthetic and relatively clean, so it under-represents the
-  messiness (duplicates, drift, missing chunks) of real production data.
+| Area | Limitation | Why |
+|---|---|---|
+| Scale | No enterprise scale | Single subscription, small resource footprint, by design |
+| Hybrid networking | VPN Gateway is IaC-only, never deployed | Billed resource; ADF's Self-Hosted Integration Runtime provides the actual working hybrid connection instead |
+| Streaming | Simulated via folder-based replay, not a live feed | Same cost reasoning — no free tier for Event Hub/Kafka |
+| Silver/gold storage | Lives in Databricks-managed tables, not the pre-provisioned ADLS containers | Databricks' free tier has limited support for writing to Azure storage directly |
+| Dataset realism | Relatively clean, synthetic data | Under-represents production-grade messiness (duplicates, drift, missing chunks) |
 
 ## Troubleshooting
 
-- **PowerShell line continuation** uses a backtick (`` ` ``), not a backslash
-  — a common source of silently broken multi-line commands.
-- **`az` not recognized after install** is almost always a stale PATH in an
-  already-open terminal. Close every window and reopen rather than retrying
-  in place.
-- **Azure CLI sign-in requiring MFA** is expected under Microsoft's current
-  enforcement policy for CLI/PowerShell tooling. Use
-  `az login --use-device-code` if the default browser flow doesn't prompt
-  for it correctly.
-- **Docker Desktop being open doesn't mean containers are running** — start
-  them explicitly with `docker compose up -d`, and add
-  `restart: unless-stopped` if you want them to survive a Docker Desktop
-  restart automatically.
-- **`.env` file values must be edited in the file itself**, never pasted into
-  a terminal — they're not shell commands.
-- **`sqlcmd -Q` with multi-statement or parenthesised queries** can break
-  under PowerShell's argument quoting. Use `sqlcmd -i <file>.sql` instead —
-  far more reliable for anything beyond a trivial one-liner.
-- **Connecting to a Dockerized/Linux SQL Server from a Windows client**
-  requires `servername,port` (comma syntax) to force TCP/IP — plain
-  `localhost` tries Named Pipes first and fails with a misleading "server not
-  found" error.
-- **ADF's Self-Hosted Integration Runtime needs a local JRE** to read/write
-  Parquet or ORC files — install one (e.g. Microsoft's OpenJDK build) and
-  restart the Integration Runtime service if you see `JreNotFound`.
-- **An RBAC-authorized Key Vault denies access by default, even to the
-  subscription owner** — explicitly grant yourself a role (e.g. **Key Vault
-  Secrets Officer**) before attempting to read or write secrets.
-- **Databricks serverless compute blocks `spark.conf.set()` for storage
-  keys** (`CONFIG_NOT_AVAILABLE`). The same key passed inline via `.option()`
-  works for reads but is unreliable for writes — write to Databricks-managed
-  tables (`saveAsTable`) instead of back to external cloud storage.
-- **Databricks Unity Catalog credential types vary by platform tier** — check
-  what's actually supported before assuming a given cloud is covered.
-- **Databricks personal access tokens require API scopes** in current
-  versions — select the broadest scope your use case needs to avoid being
-  blocked mid-build by an overly narrow token.
-- **Microsoft Fabric trial availability varies by tenant** and isn't
-  guaranteed on every account type. Power BI Desktop connecting directly to
-  a data warehouse (Databricks, Synapse, etc.) is a fully viable alternative
-  if a Fabric trial isn't available to you.
-- **New Azure DevOps organizations have zero Microsoft-hosted parallel jobs
-  by default.** Either request the free grant (can take a few business days)
-  or register a self-hosted agent for immediate use.
-- **The `AzureCLI@2` pipeline task defaults to a `bash` scriptType**, which
-  needs WSL on a Windows agent. Set `scriptType: 'ps'` for Windows
-  self-hosted agents to avoid an unnecessary WSL dependency.
-- **A CI/CD service principal's default Contributor role excludes RBAC
-  management** (`Microsoft.Authorization/roleAssignments/write`). Grant it an
-  additional, narrowly-scoped **User Access Administrator** role on the
-  target resource group if your IaC includes role assignments.
-- **Azure free-trial credit has a hard calendar expiry**, separate from how
-  much you've actually spent — check your subscription type well before any
-  stated cutoff date.
+| Symptom | Cause | Fix |
+|---|---|---|
+| Multi-line PowerShell command fails to parse | Used `\` for line continuation (bash syntax) | Use backtick `` ` `` instead |
+| `az: command not found` after install | Stale PATH in an already-open terminal | Close every terminal window and reopen, don't just retry |
+| `az login` fails with an MFA/AADSTS error | Mandatory MFA enforcement for CLI tooling | Use `az login --use-device-code` |
+| Docker container not reachable despite Docker Desktop being open | The app being open ≠ containers running | Run `docker compose up -d` explicitly; add `restart: unless-stopped` for persistence across Docker Desktop restarts |
+| `.env` values not taking effect | Contents typed into the terminal instead of the file | Edit the `.env` file directly in an editor, never paste its contents as shell commands |
+| `sqlcmd -Q` fails with a syntax error on a valid query | PowerShell mangles nested quotes for multi-statement/parenthesised `-Q` values | Use `sqlcmd -i <file>.sql` instead |
+| SQL Server connection fails with "server not found" from a Windows client | Named Pipes attempted before TCP/IP against a Dockerized/Linux SQL Server | Use `servername,port` (comma syntax) to force TCP/IP |
+| ADF Self-Hosted IR throws `JreNotFound` on Parquet/ORC | No local JRE installed | Install a JRE (e.g. Microsoft OpenJDK) and restart the Integration Runtime service |
+| Key Vault denies access even to the subscription owner | RBAC-authorized vaults deny by default until a role is explicitly granted | Grant yourself **Key Vault Secrets Officer** (or similar) on the vault |
+| `CONFIG_NOT_AVAILABLE` writing to Azure storage from Databricks | Serverless compute blocks `spark.conf.set()` for storage keys | Use `.option()` inline for reads; write to Databricks-managed tables (`saveAsTable`) instead of external storage |
+| No Azure option in Databricks Unity Catalog credentials | Credential types vary by platform tier/edition | Confirm supported credential types before assuming a given cloud is covered |
+| Databricks PAT blocked mid-task by scope error | New PATs require explicit API scopes | Select the broadest scope needed for active development |
+| Fabric trial won't activate | Trial availability varies by tenant type and admin policy | Power BI Desktop connecting directly to a warehouse (Databricks, Synapse, etc.) is a fully viable alternative |
+| Pipeline stuck with "no agent found" | New Azure DevOps orgs get zero Microsoft-hosted parallel jobs by default | Request the free grant, or register a self-hosted agent for immediate use |
+| Pipeline fails at a bash script step on a Windows agent | `AzureCLI@2` defaults to `scriptType: 'bash'`, which needs WSL | Set `scriptType: 'ps'` for Windows self-hosted agents |
+| Pipeline fails deploying RBAC role assignments | CI/CD service principal's default Contributor role excludes `roleAssignments/write` | Grant it **User Access Administrator**, scoped to the target resource group |
+| Unexpected loss of Azure resources/credit | Free-trial credit has a hard calendar expiry, separate from spend | Check subscription type well before any stated cutoff date |
 
 ## Dataset
 
