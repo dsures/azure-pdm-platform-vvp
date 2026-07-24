@@ -28,7 +28,8 @@ gold_features
 └─► Power BI report (DAX measures on failure rate, component
 breakdown, maintenance recency)
 
-Azure DevOps Pipelines ── deploys infra/ automatically on push to main
+
+## Azure DevOps Pipelines ── deploys infra/ automatically on push to main
 
 
 **Landing zone (Bicep):** resource group, virtual network (including a
@@ -164,10 +165,3 @@ azure-pdm-platform-vvp/
 
 Microsoft Azure Predictive Maintenance dataset. Confirm the license terms of
 whichever public mirror you source it from before further redistribution.
-
-## Roadmap
-
-- Star-schema ERD, UML class diagram, and BPMN process map for the full
-  pipeline.
-- Optional: Synapse serverless SQL view over the gold layer.
-- Optional: a lightweight RAG layer over the pipeline's own documentation.
