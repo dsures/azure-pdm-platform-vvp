@@ -166,7 +166,3 @@ azure-pdm-platform-vvp/
 | Pipeline fails deploying RBAC role assignments | CI/CD service principal's default Contributor role excludes `roleAssignments/write` | Grant it **User Access Administrator**, scoped to the target resource group |
 | Unexpected loss of Azure resources/credit | Free-trial credit has a hard calendar expiry, separate from spend | Check subscription type well before any stated cutoff date |
 
-## Dataset
-
-Microsoft Azure Predictive Maintenance dataset. Confirm the license terms of
-whichever public mirror you source it from before further redistribution.
